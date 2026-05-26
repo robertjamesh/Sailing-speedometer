@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a1628">
+<title>KNOTS — Sailboat Speedo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Rajdhani:wght@300;500&display=swap');
+
+  /* Offline fallbacks if Google Fonts unavailable */
+  :root {
+    --font-display: 'Bebas Neue', 'Arial Narrow', Arial, sans-serif;
+    --font-mono: 'Share Tech Mono', 'Courier New', monospace;
+    --font-body: 'Rajdhani', 'Arial Narrow', Arial, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #000000;
+    --deep: #000000;
+    --teal: #00ffdd;
+    --teal-dim: #00aa88;
+    --gold: #ffe033;
+    --red: #ff3333;
+    --text: #ffffff;
+    --dim: #4a7a80;
+    --glow: 0 0 28px rgba(0,255,221,0.8), 0 0 70px rgba(0,255,221,0.3);
+    --glow-gold: 0 0 28px rgba(255,224,51,0.9);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--deep);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 100%, rgba(0,60,80,0.6) 0%, transparent 70%),
+      linear-gradient(180deg, #000000 0%, #000000 100%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  #app {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+  }
+
+  .brand {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    letter-spacing: 0.25em;
+    color: var(--teal);
+    text-shadow: var(--glow);
+  }
+
+  #clock {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    color: var(--gold);
+    text-shadow: var(--glow-gold);
+    letter-spacing: 0.05em;
+  }
+
+  #offline-badge {
+    display: none;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    background: rgba(240,192,64,0.15);
+    border: 1px solid rgba(240,192,64,0.3);
+    color: var(--gold);
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  #gps-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    padding: 0 4px;
+  }
+
+  #gps-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--dim);
+    flex-shrink: 0;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  #gps-dot.active { background: var(--teal); box-shadow: 0 0 8px var(--teal); animation: pulse 2s infinite; }
+  #gps-dot.error  { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  .speedo-wrap {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0 8px;
+    position: relative;
+  }
+
+  #gauge-svg {
+    width: 320px;
+    height: 180px;
+    overflow: visible;
+    filter: drop-shadow(0 0 12px rgba(0,201,177,0.3));
+  }
+
+  .gauge-track { fill: none; stroke: rgba(0,255,221,0.2); stroke-width: 14; stroke-linecap: round; }
+  #gauge-fill  { fill: none; stroke: url(#gaugeGrad); stroke-width: 14; stroke-linecap: round; transition: all 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  #needle      { transition: transform 0.6s cubic-bezier(0.34,1.56,0.64,1); transform-origin: 140px 150px; }
+
+  .speed-readout {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  #speed-value {
+    font-family: var(--font-display);
+    font-size: 8rem;
+    line-height: 1;
+    color: var(--teal);
+    text-shadow: var(--glow);
+    transition: color 0.3s;
+    letter-spacing: -0.02em;
+  }
+  #speed-value.fast  { color: var(--gold); text-shadow: var(--glow-gold); }
+  #speed-value.vfast { color: var(--red);  text-shadow: 0 0 20px rgba(255,68,68,0.7); }
+
+  .speed-unit {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    color: var(--teal-dim);
+    text-transform: uppercase;
+    margin-top: -4px;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-card {
+    background: rgba(0,255,221,0.07);
+    border: 1px solid rgba(0,255,221,0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,255,221,0.6), transparent);
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--teal-dim);
+    font-family: var(--font-mono);
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--gold);
+    text-shadow: var(--glow-gold);
+  }
+
+  .stat-sub { font-size: 0.65rem; color: var(--dim); font-family: var(--font-mono); }
+
+  .time-card {
+    background: rgba(0,255,221,0.07);
+    border: 1px solid rgba(0,255,221,0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .time-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,255,221,0.6), transparent);
+  }
+
+  #elapsed {
+    font-family: var(--font-mono);
+    font-size: 1.8rem;
+    color: var(--text);
+    letter-spacing: 0.05em;
+  }
+
+  .time-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--teal-dim);
+    font-family: var(--font-mono);
+  }
+
+  .track-section {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+  }
+
+  .track-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2px;
+  }
+
+  .section-title {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--teal-dim);
+    font-family: var(--font-mono);
+  }
+
+  #track-count { font-family: var(--font-mono); font-size: 0.65rem; color: var(--dim); }
+
+  .btn-row { display: flex; gap: 8px; }
+
+  button {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1;
+  }
+
+  .btn-primary { background: rgba(0,201,177,0.15); border: 1px solid rgba(0,255,221,0.6); color: var(--teal); }
+  .btn-primary:active { background: rgba(0,201,177,0.3); transform: scale(0.97); }
+  .btn-primary.recording { background: rgba(255,68,68,0.15); border-color: rgba(255,68,68,0.4); color: var(--red); }
+
+  .btn-secondary { background: rgba(240,192,64,0.1); border: 1px solid rgba(240,192,64,0.25); color: var(--gold); }
+  .btn-secondary:active { background: rgba(240,192,64,0.25); transform: scale(0.97); }
+  .btn-secondary:disabled, .btn-danger:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .btn-danger { background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.25); color: var(--red); }
+  .btn-danger:active { background: rgba(255,68,68,0.25); transform: scale(0.97); }
+
+  #track-canvas-wrap {
+    flex: 1 1 auto;
+    min-height: 80px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,201,177,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  #track-canvas { width: 100%; height: 100%; display: block; }
+
+  .track-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  #coord-strip {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--dim);
+    text-align: center;
+    letter-spacing: 0.08em;
+    padding-bottom: 4px;
+  }
+
+  .compass-wrap { display: flex; align-items: center; gap: 6px; }
+  #heading-val { font-family: var(--font-mono); font-size: 1.0rem; color: var(--text); min-width: 44px; }
+  #compass-svg { width: 28px; height: 28px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">⚓ KNOTS</div>
+    <span id="offline-badge">OFFLINE</span>
+    <div id="clock">--:--:--</div>
+  </header>
+
+  <div id="gps-bar">
+    <div id="gps-dot"></div>
+    <span id="gps-status">Waiting for GPS…</span>
+    <div class="compass-wrap" style="margin-left:auto">
+      <svg id="compass-svg" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="12" fill="none" stroke="rgba(0,201,177,0.2)" stroke-width="1.5"/>
+        <polygon id="compass-needle" points="14,4 16,14 14,17 12,14" fill="var(--teal)" opacity="0.9"/>
+        <polygon points="14,24 16,14 14,17 12,14" fill="var(--dim)" opacity="0.6"/>
+        <circle cx="14" cy="14" r="2" fill="var(--deep)"/>
+      </svg>
+      <span id="heading-val">---°</span>
+    </div>
+  </div>
+
+  <div class="speedo-wrap">
+    <svg id="gauge-svg" viewBox="0 0 280 160">
+      <defs>
+        <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#00c9b1"/>
+          <stop offset="70%" stop-color="#f0c040"/>
+          <stop offset="100%" stop-color="#ff4444"/>
+        </linearGradient>
+      </defs>
+      <g id="ticks"></g>
+      <path class="gauge-track" d="M 28,148 A 120,120 0 0,1 252,148"/>
+      <path id="gauge-fill" d="M 28,148 A 120,120 0 0,1 252,148"/>
+      <g id="needle">
+        <line x1="140" y1="150" x2="140" y2="42" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+        <circle cx="140" cy="150" r="6" fill="var(--navy)" stroke="white" stroke-width="1.5"/>
+      </g>
+      <text x="28"  y="162" font-family="monospace" font-size="10" fill="rgba(0,201,177,0.5)" text-anchor="middle">0</text>
+      <text x="252" y="162" font-family="monospace" font-size="10" fill="rgba(255,68,68,0.5)"  text-anchor="middle">20</text>
+      <text x="140" y="162" font-family="monospace" font-size="10" fill="rgba(240,192,64,0.5)" text-anchor="middle">10</text>
+    </svg>
+    <div class="speed-readout">
+      <div id="speed-value">0.0</div>
+      <div class="speed-unit">knots</div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Top Speed</div>
+      <div class="stat-value" id="top-speed">0.0</div>
+      <div class="stat-sub">KNOTS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Speed</div>
+      <div class="stat-value" id="avg-speed">0.0</div>
+      <div class="stat-sub">KNOTS</div>
+    </div>
+  </div>
+
+  <div class="time-card">
+    <div>
+      <div class="time-label">Elapsed</div>
+      <div id="elapsed">00:00:00</div>
+    </div>
+    <div style="text-align:right">
+      <div class="time-label">Distance</div>
+      <div id="distance" style="font-family:var(--font-display);font-size:1.8rem;color:var(--text);letter-spacing:0.02em">0.00 <span style="font-size:0.9rem;letter-spacing:0.1em;color:var(--dim)">NM</span></div>
+    </div>
+  </div>
+
+  <div class="track-section">
+    <div class="track-header">
+      <span class="section-title">GPS Track</span>
+      <span id="track-count">0 pts</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-record" onclick="toggleRecord()">● Record</button>
+      <button class="btn-secondary" id="btn-export" onclick="exportTrack()" disabled>↑ GPX</button>
+      <button class="btn-danger" id="btn-clear" onclick="clearTrack()" disabled>✕ Clear</button>
+    </div>
+    <div id="track-canvas-wrap">
+      <canvas id="track-canvas"></canvas>
+      <div class="track-empty" id="track-empty">NO TRACK DATA</div>
+    </div>
+  </div>
+
+  <div id="coord-strip">-- LAT / -- LON</div>
+
+</div>
+
+<script>
+// ── SERVICE WORKER REGISTRATION ────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(err => {
+    console.warn('SW registration failed:', err);
+  });
+}
+
+// Show offline badge when network is lost
+window.addEventListener('offline', () => {
+  document.getElementById('offline-badge').style.display = 'inline';
+});
+window.addEventListener('online', () => {
+  document.getElementById('offline-badge').style.display = 'none';
+});
+
+// ── STATE ──────────────────────────────────────────────────────────
+const MAX_SPEED_KNOTS = 20;
+let speed = 0, topSpeed = 0, startTime = null, recording = false;
+let trackPoints = [];
+let speedSamples = [];
+let totalDistance = 0;
+let lastPos = null;
+let watchId = null;
+
+// ── GAUGE ──────────────────────────────────────────────────────────
+const CX = 140, CY = 150, R = 112;
+
+function arcPoint(angleDeg) {
+  const rad = (angleDeg * Math.PI) / 180;
+  return { x: CX + R * Math.cos(rad), y: CY - R * Math.sin(rad) };
+}
+
+function buildTicks() {
+  const g = document.getElementById('ticks');
+  for (let k = 0; k <= MAX_SPEED_KNOTS; k++) {
+    const t = k / MAX_SPEED_KNOTS;
+    const angleDeg = 180 - t * 180;
+    const rad = (angleDeg * Math.PI) / 180;
+    const major = k % 5 === 0;
+    const r1 = major ? R - 18 : R - 10;
+    const x1 = CX + r1 * Math.cos(rad), y1 = CY - r1 * Math.sin(rad);
+    const x2 = CX + (R-6) * Math.cos(rad), y2 = CY - (R-6) * Math.sin(rad);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.setAttribute('stroke', major ? 'rgba(0,201,177,0.35)' : 'rgba(0,201,177,0.15)');
+    line.setAttribute('stroke-width', major ? '1.5' : '1');
+    g.appendChild(line);
+    if (major && k > 0 && k < MAX_SPEED_KNOTS) {
+      const tr = R - 28;
+      const tx = CX + tr * Math.cos(rad), ty = CY - tr * Math.sin(rad);
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',tx); txt.setAttribute('y',ty+3);
+      txt.setAttribute('text-anchor','middle');
+      txt.setAttribute('font-family','monospace');
+      txt.setAttribute('font-size','9');
+      txt.setAttribute('fill','rgba(0,255,221,0.6)');
+      txt.textContent = k;
+      g.appendChild(txt);
+    }
+  }
+}
+buildTicks();
+
+function updateGauge(knots) {
+  const t = Math.min(knots / MAX_SPEED_KNOTS, 1);
+  const angleDeg = 180 - t * 180;
+  const endPt = arcPoint(angleDeg);
+  const startPt = arcPoint(180);
+  const fillPath = document.getElementById('gauge-fill');
+  if (t <= 0) { fillPath.setAttribute('d',''); return; }
+  const large = t > 0.5 ? 1 : 0;
+  fillPath.setAttribute('d', `M ${startPt.x},${startPt.y} A ${R},${R} 0 ${large},1 ${endPt.x},${endPt.y}`);
+  const arcLen = t * Math.PI * R;
+  fillPath.setAttribute('stroke-dasharray', `${arcLen} 9999`);
+  const needle = document.getElementById('needle');
+  needle.setAttribute('transform', `rotate(${t * 180 - 180}, ${CX}, ${CY})`);
+}
+
+// ── CLOCK ──────────────────────────────────────────────────────────
+function padZ(n) { return String(n).padStart(2,'0'); }
+function updateClock() {
+  const n = new Date();
+  document.getElementById('clock').textContent = `${padZ(n.getHours())}:${padZ(n.getMinutes())}:${padZ(n.getSeconds())}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── ELAPSED ────────────────────────────────────────────────────────
+function updateElapsed() {
+  if (!startTime) return;
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  document.getElementById('elapsed').textContent =
+    `${padZ(Math.floor(s/3600))}:${padZ(Math.floor((s%3600)/60))}:${padZ(s%60)}`;
+}
+setInterval(updateElapsed, 1000);
+
+// ── GPS ────────────────────────────────────────────────────────────
+function startGPS() {
+  if (!('geolocation' in navigator)) {
+    setGPSStatus('GPS NOT AVAILABLE','error'); return;
+  }
+  setGPSStatus('Acquiring…','');
+  watchId = navigator.geolocation.watchPosition(onPosition, onGPSError, {
+    enableHighAccuracy: true, timeout: 15000, maximumAge: 0
+  });
+}
+
+function onPosition(pos) {
+  const { latitude:lat, longitude:lon, speed:spd, heading:hdg, accuracy:acc } = pos.coords;
+  const knots = spd != null ? spd * 1.94384 : 0;
+
+  setGPSStatus(`GPS ✓  ±${Math.round(acc)}m`, 'active');
+  document.getElementById('coord-strip').textContent =
+    `${lat.toFixed(5)}°N  /  ${Math.abs(lon).toFixed(5)}°${lon<0?'W':'E'}`;
+
+  if (hdg != null) {
+    document.getElementById('compass-needle').setAttribute('transform',`rotate(${hdg},14,14)`);
+    document.getElementById('heading-val').textContent = `${Math.round(hdg)}°`;
+  }
+
+  updateSpeedDisplay(knots);
+
+  if (recording) {
+    if (!startTime) startTime = Date.now();
+    speedSamples.push(knots);
+    if (lastPos) {
+      totalDistance += haversineNM(lastPos.lat, lastPos.lon, lat, lon);
+      document.getElementById('distance').innerHTML =
+        `${totalDistance.toFixed(2)} <span style="font-size:0.9rem;letter-spacing:0.1em;color:var(--dim)">NM</span>`;
+    }
+    lastPos = { lat, lon };
+    trackPoints.push({ lat, lon, spd: knots, t: Date.now() });
+    document.getElementById('track-count').textContent = `${trackPoints.length} pts`;
+    document.getElementById('track-empty').style.display = 'none';
+    drawTrack();
+    const avg = speedSamples.reduce((a,b)=>a+b,0) / speedSamples.length;
+    document.getElementById('avg-speed').textContent = avg.toFixed(1);
+    document.getElementById('btn-export').disabled = false;
+    document.getElementById('btn-clear').disabled = false;
+  }
+}
+
+function onGPSError(err) {
+  const msgs = {1:'Permission denied — allow GPS in browser settings',2:'GPS signal lost',3:'GPS timeout'};
+  setGPSStatus(msgs[err.code] || err.message, 'error');
+}
+
+function setGPSStatus(msg, cls) {
+  document.getElementById('gps-status').textContent = msg;
+  const dot = document.getElementById('gps-dot');
+  dot.className = cls || '';
+}
+
+// ── SPEED DISPLAY ─────────────────────────────────────────────────
+function updateSpeedDisplay(knots) {
+  const el = document.getElementById('speed-value');
+  el.textContent = knots.toFixed(1);
+  el.className = knots >= 15 ? 'vfast' : knots >= 8 ? 'fast' : '';
+  if (knots > topSpeed) {
+    topSpeed = knots;
+    document.getElementById('top-speed').textContent = topSpeed.toFixed(1);
+  }
+  updateGauge(knots);
+}
+
+// ── HAVERSINE (nautical miles) ────────────────────────────────────
+function haversineNM(lat1,lon1,lat2,lon2) {
+  const R=3440.065, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// ── TRACK CANVAS ──────────────────────────────────────────────────
+function drawTrack() {
+  const wrap = document.getElementById('track-canvas-wrap');
+  const canvas = document.getElementById('track-canvas');
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  const ctx = canvas.getContext('2d');
+  if (trackPoints.length < 2) return;
+  const lats=trackPoints.map(p=>p.lat), lons=trackPoints.map(p=>p.lon);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats);
+  const minLon=Math.min(...lons),maxLon=Math.max(...lons);
+  const pad=20, W=canvas.width-pad*2, H=canvas.height-pad*2;
+  const scale=Math.min(W/(maxLon-minLon||0.001), H/(maxLat-minLat||0.001));
+  const toXY=(lat,lon)=>({
+    x: pad+(lon-minLon)*scale,
+    y: pad+H-(lat-minLat)*scale
+  });
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for (let i=1; i<trackPoints.length; i++) {
+    const p0=toXY(trackPoints[i-1].lat,trackPoints[i-1].lon);
+    const p1=toXY(trackPoints[i].lat,trackPoints[i].lon);
+    const t=trackPoints[i].spd/MAX_SPEED_KNOTS;
+    ctx.beginPath();
+    ctx.moveTo(p0.x,p0.y);
+    ctx.lineTo(p1.x,p1.y);
+    ctx.strokeStyle=`rgba(${Math.round(t*255)},${Math.round((1-t)*201)},177,0.9)`;
+    ctx.lineWidth=2.5;
+    ctx.stroke();
+  }
+  const s=toXY(trackPoints[0].lat,trackPoints[0].lon);
+  ctx.beginPath(); ctx.arc(s.x,s.y,4,0,Math.PI*2); ctx.fillStyle='#00c9b1'; ctx.fill();
+  const c=toXY(trackPoints[trackPoints.length-1].lat,trackPoints[trackPoints.length-1].lon);
+  ctx.beginPath(); ctx.arc(c.x,c.y,5,0,Math.PI*2);
+  ctx.fillStyle='#f0c040'; ctx.shadowColor='#f0c040'; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
+}
+
+// ── CONTROLS ──────────────────────────────────────────────────────
+function toggleRecord() {
+  recording = !recording;
+  const btn = document.getElementById('btn-record');
+  btn.textContent = recording ? '■ Stop' : '● Record';
+  btn.classList.toggle('recording', recording);
+  if (recording && !startTime) startTime = Date.now();
+}
+
+function clearTrack() {
+  if (!confirm('Clear all track data?')) return;
+  trackPoints=[]; speedSamples=[]; totalDistance=0; topSpeed=0; lastPos=null; startTime=null; recording=false;
+  document.getElementById('btn-record').textContent='● Record';
+  document.getElementById('btn-record').classList.remove('recording');
+  document.getElementById('top-speed').textContent='0.0';
+  document.getElementById('avg-speed').textContent='0.0';
+  document.getElementById('distance').innerHTML='0.00 <span style="font-size:0.9rem;letter-spacing:0.1em;color:var(--dim)">NM</span>';
+  document.getElementById('elapsed').textContent='00:00:00';
+  document.getElementById('track-count').textContent='0 pts';
+  document.getElementById('track-empty').style.display='';
+  document.getElementById('track-canvas').getContext('2d').clearRect(0,0,9999,9999);
+  document.getElementById('btn-export').disabled=true;
+  document.getElementById('btn-clear').disabled=true;
+}
+
+function exportTrack() {
+  if (!trackPoints.length) return;
+  const date=new Date().toISOString();
+  let gpx=`<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="KNOTS Sailboat Speedo" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>Sail ${date.split('T')[0]}</name><trkseg>\n`;
+  trackPoints.forEach(pt=>{
+    gpx+=`    <trkpt lat="${pt.lat.toFixed(7)}" lon="${pt.lon.toFixed(7)}">
+      <time>${new Date(pt.t).toISOString()}</time>
+      <extensions><speed>${(pt.spd*0.514444).toFixed(2)}</speed></extensions>
+    </trkpt>\n`;
+  });
+  gpx+=`  </trkseg></trk>\n</gpx>`;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([gpx],{type:'application/gpx+xml'}));
+  a.download=`sail-${date.split('T')[0]}.gpx`;
+  a.click();
+}
+
+window.addEventListener('resize', ()=>{ if(trackPoints.length>1) drawTrack(); });
+
+// ── INIT ──────────────────────────────────────────────────────────
+startGPS();
+updateGauge(0);
+if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+</script>
+</body>
+</html>
