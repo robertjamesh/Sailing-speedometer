@@ -53,7 +53,6 @@
       padding: 8px 12px;
       gap: 10px;
     }
-    /* Left column: speed + heel */
     #col-left {
       flex: 1 1 auto;
       display: flex;
@@ -62,7 +61,6 @@
       justify-content: center;
       gap: 6px;
     }
-    /* Right column: stats + controls */
     #col-right {
       flex: 0 0 220px;
       display: flex;
@@ -70,17 +68,16 @@
       gap: 8px;
       justify-content: space-between;
     }
-    /* Hide portrait-only wrappers */
-    #portrait-speed { display: none; }
+    #portrait-speed  { display: none; }
     #portrait-stats  { display: none; }
     #portrait-time   { display: none; }
     #portrait-track  { display: none; }
     #portrait-coords { display: none; }
+    #portrait-heading { display: none; }
     #landscape-speed,
     #landscape-right { display: flex !important; }
   }
 
-  /* Hide landscape elements in portrait */
   #landscape-speed { display: none; }
   #landscape-right { display: none; }
 
@@ -170,10 +167,6 @@
   #gps-dot.error  { background: var(--red);  box-shadow: 0 0 8px var(--red); }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-  .compass-wrap { display: flex; align-items: center; gap: 5px; }
-  #heading-val  { font-family: var(--font-mono); font-size: 0.9rem; color: var(--text); min-width: 40px; }
-  #compass-svg  { width: 24px; height: 24px; }
-
   /* ── SPEED (portrait) ───────────────────────────────────── */
   .speedo-wrap {
     flex: 1 1 auto;
@@ -206,110 +199,82 @@
     color: var(--teal-dim);
     text-transform: uppercase;
     margin-top: 4px;
+    cursor: pointer;
   }
 
-  /* ── HEEL INDICATOR ─────────────────────────────────────── */
-  .heel-wrap {
+  /* Flash animation when unit cycles */
+  @keyframes unit-flash {
+    0%   { opacity: 1; }
+    30%  { opacity: 0.1; }
+    100% { opacity: 1; }
+  }
+  .speed-unit.flash { animation: unit-flash 0.25s ease-out; }
+
+  /* Tap hint ring on the speed number */
+  .speedo-wrap { cursor: pointer; }
+  .speed-readout {
+    position: relative;
+  }
+
+  /* ── HEADING CARD ───────────────────────────────────────── */
+  .heading-card {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 16px;
+    flex-shrink: 0;
+    background: rgba(0,255,221,0.05);
+    border: 1px solid rgba(0,255,221,0.2);
+    border-radius: 10px;
+    padding: 10px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .heading-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,255,221,0.6), transparent);
+  }
+
+  /* Compass rose SVG wrapper */
+  .compass-rose-wrap {
     flex-shrink: 0;
   }
 
-  .heel-label {
+  /* Heading text block */
+  .heading-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .heading-label {
     font-family: var(--font-mono);
     font-size: 0.6rem;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.25em;
     text-transform: uppercase;
     color: var(--teal-dim);
   }
 
-  /* The horizon bar */
-  #heel-bar-wrap {
-    width: 180px;
-    height: 44px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Port / stbd labels */
-  #heel-bar-wrap::before {
-    content: 'PORT';
-    position: absolute;
-    left: 6px; top: 50%;
-    transform: translateY(-50%);
-    font-family: var(--font-mono);
-    font-size: 0.55rem;
-    color: var(--dim);
-    letter-spacing: 0.1em;
-    z-index: 2;
-  }
-  #heel-bar-wrap::after {
-    content: 'STBD';
-    position: absolute;
-    right: 6px; top: 50%;
-    transform: translateY(-50%);
-    font-family: var(--font-mono);
-    font-size: 0.55rem;
-    color: var(--dim);
-    letter-spacing: 0.1em;
-    z-index: 2;
-  }
-
-  #horizon-line {
-    position: absolute;
-    left: 0; right: 0;
-    top: 50%; height: 3px;
-    margin-top: -1.5px;
-    background: linear-gradient(90deg, rgba(0,255,221,0.15), rgba(0,255,221,0.5), rgba(0,255,221,0.15));
-    transform-origin: center center;
-    transition: transform 0.15s ease-out;
-    border-radius: 2px;
-  }
-
-  /* The boat silhouette */
-  #boat-icon {
-    position: absolute;
-    left: 50%; top: 50%;
-    transform: translate(-50%, -50%);
-    width: 18px; height: 18px;
-    z-index: 3;
-  }
-
-  /* Angle readout + side indicator */
-  .heel-readout {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-  }
-
-  #heel-value {
+  .heading-deg {
     font-family: var(--font-display);
-    font-size: 2.0rem;
-    line-height: 1;
+    font-size: clamp(3.5rem, 14vw, 6rem);
+    line-height: 0.9;
     color: var(--teal);
     text-shadow: var(--glow);
-    transition: color 0.2s;
-    min-width: 3ch;
-    text-align: center;
-  }
-  #heel-value.warn  { color: var(--gold); text-shadow: var(--glow-gold); }
-  #heel-value.alert { color: var(--red);  text-shadow: 0 0 20px rgba(255,51,51,0.8); }
-
-  #heel-side {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.15em;
-    color: var(--dim);
-    min-width: 40px;
+    letter-spacing: 0.02em;
+    transition: color 0.3s;
   }
 
-  #pitch-strip {
+  .heading-cardinal {
     font-family: var(--font-mono);
-    font-size: 0.6rem;
-    color: var(--dim);
-    letter-spacing: 0.12em;
+    font-size: 1.1rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    text-shadow: var(--glow-gold);
+    margin-top: 2px;
   }
 
   /* ── STATS ROW ──────────────────────────────────────────── */
@@ -398,16 +363,7 @@
   button:disabled { opacity: 0.3; cursor: not-allowed; }
 
   /* ── COORD STRIP ────────────────────────────────────────── */
-  #coord-strip {
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    color: var(--dim);
-    text-align: center;
-    letter-spacing: 0.08em;
-    flex-shrink: 0;
-  }
-
-  #portrait-coords {
+  #coord-strip, #portrait-coords {
     font-family: var(--font-mono);
     font-size: 0.6rem;
     color: var(--dim);
@@ -427,6 +383,17 @@
 
   #landscape-speed .speed-num {
     font-size: clamp(5rem, 22vw, 16rem);
+  }
+
+  /* Landscape heading card — more compact */
+  #landscape-speed .heading-card {
+    width: 100%;
+    max-width: 340px;
+    padding: 8px 16px;
+  }
+
+  #landscape-speed .heading-deg {
+    font-size: clamp(2.5rem, 8vw, 4rem);
   }
 
   /* ── LANDSCAPE RIGHT COL ────────────────────────────────── */
@@ -449,44 +416,62 @@
     </div>
   </header>
 
-  <!-- GPS BAR (always visible) -->
+  <!-- GPS STATUS BAR -->
   <div id="gps-bar">
     <div id="gps-dot"></div>
     <span id="gps-status">Waiting for GPS…</span>
-    <div class="compass-wrap" style="margin-left:auto">
-      <svg id="compass-svg" viewBox="0 0 28 28">
-        <circle cx="14" cy="14" r="12" fill="none" stroke="rgba(0,255,221,0.2)" stroke-width="1.5"/>
-        <polygon id="compass-needle" points="14,4 16,14 14,17 12,14" fill="var(--teal)" opacity="0.9"/>
-        <polygon points="14,24 16,14 14,17 12,14" fill="var(--dim)" opacity="0.6"/>
-        <circle cx="14" cy="14" r="2" fill="black"/>
-      </svg>
-      <span id="heading-val">---°</span>
-    </div>
   </div>
 
   <!-- ══ PORTRAIT LAYOUT ══════════════════════════════════════ -->
-  <div id="portrait-speed" class="speedo-wrap">
+  <div id="portrait-speed" class="speedo-wrap" onclick="cycleUnit()">
     <div class="speed-readout">
       <span class="speed-num" id="speed-p">0.0</span>
-      <div class="speed-unit">knots</div>
+      <div class="speed-unit" id="unit-label-p">knots</div>
     </div>
   </div>
 
-  <!-- Heel indicator (portrait) -->
-  <div id="portrait-heel" class="heel-wrap">
-    <div class="heel-label">Heel Angle</div>
-    <div id="heel-bar-wrap">
-      <div id="horizon-line"></div>
-      <svg id="boat-icon" viewBox="0 0 18 18">
-        <polygon points="9,2 13,14 9,12 5,14" fill="white" opacity="0.9"/>
-        <line x1="9" y1="2" x2="9" y2="14" stroke="white" stroke-width="1" opacity="0.5"/>
+  <!-- Heading card (portrait) -->
+  <div id="portrait-heading" class="heading-card">
+    <div class="compass-rose-wrap">
+      <svg id="compass-rose-p" width="72" height="72" viewBox="0 0 72 72">
+        <!-- Outer ring -->
+        <circle cx="36" cy="36" r="33" fill="none" stroke="rgba(0,255,221,0.18)" stroke-width="1.5"/>
+        <!-- Cardinal tick marks -->
+        <line x1="36" y1="4"  x2="36" y2="11" stroke="rgba(0,255,221,0.5)" stroke-width="1.5"/>
+        <line x1="36" y1="61" x2="36" y2="68" stroke="rgba(0,255,221,0.25)" stroke-width="1"/>
+        <line x1="4"  y1="36" x2="11" y2="36" stroke="rgba(0,255,221,0.25)" stroke-width="1"/>
+        <line x1="61" y1="36" x2="68" y2="36" stroke="rgba(0,255,221,0.25)" stroke-width="1"/>
+        <!-- Intercardinal ticks -->
+        <line x1="57.3" y1="14.7" x2="52.1" y2="19.9" stroke="rgba(0,255,221,0.15)" stroke-width="0.8"/>
+        <line x1="14.7" y1="14.7" x2="19.9" y2="19.9" stroke="rgba(0,255,221,0.15)" stroke-width="0.8"/>
+        <line x1="57.3" y1="57.3" x2="52.1" y2="52.1" stroke="rgba(0,255,221,0.15)" stroke-width="0.8"/>
+        <line x1="14.7" y1="57.3" x2="19.9" y2="52.1" stroke="rgba(0,255,221,0.15)" stroke-width="0.8"/>
+        <!-- Cardinal letters (fixed, not rotating) -->
+        <text x="36" y="20.5" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="7" fill="rgba(0,255,221,0.5)" letter-spacing="0">N</text>
+        <text x="36" y="60"   text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="6" fill="rgba(0,255,221,0.25)">S</text>
+        <text x="13"  y="38.5" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="6" fill="rgba(0,255,221,0.25)">W</text>
+        <text x="59"  y="38.5" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="6" fill="rgba(0,255,221,0.25)">E</text>
+        <!-- Rotating needle group -->
+        <g id="needle-p" style="transform-origin:36px 36px;transition:transform 0.4s ease-out">
+          <!-- North (teal) -->
+          <polygon points="36,10 38.5,36 36,40 33.5,36" fill="var(--teal)" opacity="0.95" filter="url(#glow-f)"/>
+          <!-- South (dim) -->
+          <polygon points="36,62 38.5,36 36,40 33.5,36" fill="var(--dim)" opacity="0.5"/>
+          <circle cx="36" cy="36" r="3" fill="#000" stroke="rgba(0,255,221,0.4)" stroke-width="1"/>
+        </g>
+        <defs>
+          <filter id="glow-f" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
       </svg>
     </div>
-    <div class="heel-readout">
-      <span id="heel-value">0°</span>
-      <span id="heel-side">---</span>
+    <div class="heading-text">
+      <div class="heading-label">Heading</div>
+      <div class="heading-deg" id="hdg-deg-p">---°</div>
+      <div class="heading-cardinal" id="hdg-card-p">·  ·  ·</div>
     </div>
-    <div id="pitch-strip">PITCH --°</div>
   </div>
 
   <div id="portrait-stats" class="stats-row">
@@ -525,32 +510,55 @@
     </div>
   </div>
 
-  <div id="portrait-coords" class="coord-strip-el">-- LAT / -- LON</div>
+  <div id="portrait-coords">-- LAT / -- LON</div>
 
   <!-- ══ LANDSCAPE LAYOUT ═════════════════════════════════════ -->
 
-  <!-- Left col: big speed + heel -->
+  <!-- Left col: big speed + heading -->
   <div id="col-left">
     <div id="landscape-speed">
-      <div class="speed-readout">
+      <div class="speed-readout" onclick="cycleUnit()" style="cursor:pointer">
         <span class="speed-num" id="speed-l">0.0</span>
-        <div class="speed-unit">knots</div>
+        <div class="speed-unit" id="unit-label-l">knots</div>
       </div>
-      <!-- Heel in landscape (reuses same IDs via JS sync) -->
-      <div class="heel-wrap" id="landscape-heel-wrap">
-        <div class="heel-label">Heel Angle</div>
-        <div id="heel-bar-wrap-l" style="width:220px;height:44px;position:relative;overflow:hidden">
-          <div id="horizon-line-l" style="position:absolute;left:0;right:0;top:50%;height:3px;margin-top:-1.5px;background:linear-gradient(90deg,rgba(0,255,221,0.15),rgba(0,255,221,0.5),rgba(0,255,221,0.15));transform-origin:center;transition:transform 0.15s;border-radius:2px"></div>
-          <svg style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;z-index:3" viewBox="0 0 18 18">
-            <polygon points="9,2 13,14 9,12 5,14" fill="white" opacity="0.9"/>
-            <line x1="9" y1="2" x2="9" y2="14" stroke="white" stroke-width="1" opacity="0.5"/>
+
+      <!-- Heading card landscape -->
+      <div class="heading-card">
+        <div class="compass-rose-wrap">
+          <svg id="compass-rose-l" width="60" height="60" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r="33" fill="none" stroke="rgba(0,255,221,0.18)" stroke-width="1.5"/>
+            <line x1="36" y1="4"  x2="36" y2="11" stroke="rgba(0,255,221,0.5)" stroke-width="1.5"/>
+            <line x1="36" y1="61" x2="36" y2="68" stroke="rgba(0,255,221,0.25)" stroke-width="1"/>
+            <line x1="4"  y1="36" x2="11" y2="36" stroke="rgba(0,255,221,0.25)" stroke-width="1"/>
+            <line x1="61" y1="36" x2="68" y2="36" stroke="rgba(0,255,221,0.25)" stroke-width="1"/>
+            <line x1="57.3" y1="14.7" x2="52.1" y2="19.9" stroke="rgba(0,255,221,0.15)" stroke-width="0.8"/>
+            <line x1="14.7" y1="14.7" x2="19.9" y2="19.9" stroke="rgba(0,255,221,0.15)" stroke-width="0.8"/>
+            <line x1="57.3" y1="57.3" x2="52.1" y2="52.1" stroke="rgba(0,255,221,0.15)" stroke-width="0.8"/>
+            <line x1="14.7" y1="57.3" x2="19.9" y2="52.1" stroke="rgba(0,255,221,0.15)" stroke-width="0.8"/>
+            <text x="36" y="20.5" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="7" fill="rgba(0,255,221,0.5)">N</text>
+            <text x="36" y="60"   text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="6" fill="rgba(0,255,221,0.25)">S</text>
+            <text x="13"  y="38.5" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="6" fill="rgba(0,255,221,0.25)">W</text>
+            <text x="59"  y="38.5" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="6" fill="rgba(0,255,221,0.25)">E</text>
+            <g id="needle-l" style="transform-origin:36px 36px;transition:transform 0.4s ease-out">
+              <polygon points="36,10 38.5,36 36,40 33.5,36" fill="var(--teal)" opacity="0.95" filter="url(#glow-fl)"/>
+              <polygon points="36,62 38.5,36 36,40 33.5,36" fill="var(--dim)" opacity="0.5"/>
+              <circle cx="36" cy="36" r="3" fill="#000" stroke="rgba(0,255,221,0.4)" stroke-width="1"/>
+            </g>
+            <defs>
+              <filter id="glow-fl" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
           </svg>
         </div>
-        <div class="heel-readout">
-          <span id="heel-value-l" style="font-family:var(--font-display);font-size:2rem;color:var(--teal);text-shadow:var(--glow);min-width:3ch;text-align:center">0°</span>
-          <span id="heel-side-l" style="font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.15em;color:var(--dim);min-width:40px"></span>
+        <div class="heading-text">
+          <div class="heading-label">Heading</div>
+          <div class="heading-deg" id="hdg-deg-l">---°</div>
+          <div class="heading-cardinal" id="hdg-card-l">·  ·  ·</div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -590,8 +598,7 @@
           <button class="btn-danger" id="btn-clear-l" onclick="clearTrack()" disabled>✕ Clear</button>
         </div>
       </div>
-      <div id="coord-strip" style="font-family:var(--font-mono);font-size:0.6rem;color:var(--dim);text-align:center;letter-spacing:0.08em">-- LAT / -- LON</div>
-      <div id="pitch-strip-l" style="font-family:var(--font-mono);font-size:0.6rem;color:var(--dim);text-align:center;letter-spacing:0.1em">PITCH --°</div>
+      <div id="coord-strip">-- LAT / -- LON</div>
     </div>
   </div>
 
@@ -608,13 +615,16 @@ window.addEventListener('online',  () => { document.getElementById('offline-badg
 // ── STATE ──────────────────────────────────────────────────────────
 let topSpeed = 0, startTime = null, recording = false;
 let trackPoints = [], speedSamples = [], totalDistance = 0, lastPos = null;
-let heelAngle = 0, pitchAngle = 0;
 let brightnessOn = false;
 let wakeLock = null;
 
 // ── HELPERS ────────────────────────────────────────────────────────
 function padZ(n) { return String(n).padStart(2,'0'); }
-function isLandscape() { return window.innerWidth > window.innerHeight; }
+
+function degToCardinal(deg) {
+  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
 
 // ── CLOCK ──────────────────────────────────────────────────────────
 function updateClock() {
@@ -642,13 +652,8 @@ async function toggleBrightness() {
   if (brightnessOn) {
     btn.textContent = '☀ BRIGHT';
     btn.classList.add('on');
-    // Request wake lock to keep screen on
-    try {
-      wakeLock = await navigator.wakeLock.request('screen');
-    } catch(e) {}
-    // Force max brightness via CSS filter trick (limited, but helps on some devices)
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
     document.body.style.filter = 'brightness(1)';
-    // Instruct user if Screen Brightness API not available
   } else {
     btn.textContent = '☀ DIM';
     btn.classList.remove('on');
@@ -657,12 +662,28 @@ async function toggleBrightness() {
   }
 }
 
-// Re-acquire wake lock if page becomes visible again
 document.addEventListener('visibilitychange', async () => {
   if (brightnessOn && document.visibilityState === 'visible') {
     try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
   }
 });
+
+// ── HEADING DISPLAY ────────────────────────────────────────────────
+function updateHeadingDisplay(hdg) {
+  const deg = Math.round(hdg);
+  const card = degToCardinal(hdg);
+  const degTxt = `${deg}°`;
+
+  // Portrait
+  document.getElementById('hdg-deg-p').textContent = degTxt;
+  document.getElementById('hdg-card-p').textContent = card;
+  document.getElementById('needle-p').style.transform = `rotate(${hdg}deg)`;
+
+  // Landscape
+  document.getElementById('hdg-deg-l').textContent = degTxt;
+  document.getElementById('hdg-card-l').textContent = card;
+  document.getElementById('needle-l').style.transform = `rotate(${hdg}deg)`;
+}
 
 // ── GPS ────────────────────────────────────────────────────────────
 function startGPS() {
@@ -677,7 +698,8 @@ function startGPS() {
 
 function onPosition(pos) {
   const { latitude:lat, longitude:lon, speed:spd, heading:hdg, accuracy:acc } = pos.coords;
-  const knots = spd != null ? spd * 1.94384 : 0;
+  const ms = spd != null ? spd : 0;
+  const knots = ms * 1.94384;
 
   setGPSStatus(`GPS ✓  ±${Math.round(acc)}m`, 'active');
 
@@ -687,11 +709,10 @@ function onPosition(pos) {
   });
 
   if (hdg != null) {
-    document.getElementById('compass-needle').setAttribute('transform', `rotate(${hdg},14,14)`);
-    document.getElementById('heading-val').textContent = `${Math.round(hdg)}°`;
+    updateHeadingDisplay(hdg);
   }
 
-  updateSpeedDisplay(knots);
+  updateSpeedDisplay(ms);
 
   if (recording) {
     if (!startTime) startTime = Date.now();
@@ -726,85 +747,50 @@ function setGPSStatus(msg, cls) {
   dot.className = cls || '';
 }
 
+// ── UNITS ──────────────────────────────────────────────────────────
+const UNITS = [
+  { label: 'knots',           factor: 1.94384,  fast: 8,  vfast: 15  },
+  { label: 'km/h',            factor: 3.6,      fast: 15, vfast: 28  },
+  { label: 'mph',             factor: 2.23694,  fast: 9,  vfast: 17  },
+  { label: 'smoots / sec',    factor: 1 / 1.7018,  fast: 1.3, vfast: 2.4 },
+];
+let unitIdx = 0;
+
+function cycleUnit() {
+  unitIdx = (unitIdx + 1) % UNITS.length;
+  const u = UNITS[unitIdx];
+  ['unit-label-p','unit-label-l'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = u.label;
+    el.classList.remove('flash');
+    void el.offsetWidth; // reflow to restart animation
+    el.classList.add('flash');
+  });
+  // Re-render last known speed in new unit
+  if (lastSpeedMS != null) updateSpeedDisplay(lastSpeedMS);
+}
+
+let lastSpeedMS = null; // always store raw m/s
+
 // ── SPEED DISPLAY ──────────────────────────────────────────────────
-function updateSpeedDisplay(knots) {
-  const cls = knots >= 15 ? 'vfast' : knots >= 8 ? 'fast' : '';
-  const txt = knots.toFixed(1);
+function updateSpeedDisplay(ms) {
+  lastSpeedMS = ms;
+  const u = UNITS[unitIdx];
+  const val = ms * u.factor;
+  const cls = val >= u.vfast ? 'vfast' : val >= u.fast ? 'fast' : '';
+  const txt = val.toFixed(1);
   ['speed-p','speed-l'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.textContent = txt; el.className = 'speed-num ' + cls; }
   });
+  // Top/avg speed always shown in knots for consistency
+  const knots = ms * 1.94384;
   if (knots > topSpeed) {
     topSpeed = knots;
     document.getElementById('top-speed').textContent = topSpeed.toFixed(1);
     document.getElementById('top-speed-l').textContent = topSpeed.toFixed(1);
   }
-}
-
-// ── HEEL (ACCELEROMETER) ───────────────────────────────────────────
-function startHeel() {
-  if (!('DeviceMotionEvent' in window) && !('DeviceOrientationEvent' in window)) {
-    document.getElementById('heel-value').textContent = 'N/A';
-    return;
-  }
-
-  // iOS 13+ requires permission
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    // Add a one-time tap listener to request permission
-    document.addEventListener('click', async function reqPerm() {
-      try {
-        const r = await DeviceOrientationEvent.requestPermission();
-        if (r === 'granted') listenOrientation();
-      } catch(e) {}
-      document.removeEventListener('click', reqPerm);
-    }, { once: true });
-  } else {
-    listenOrientation();
-  }
-}
-
-function listenOrientation() {
-  window.addEventListener('deviceorientation', (e) => {
-    // gamma = left/right tilt (-90 to 90), beta = front/back (-180 to 180)
-    const heel  = e.gamma != null ? e.gamma : 0;
-    const pitch = e.beta  != null ? e.beta  : 0;
-
-    // Smooth with a simple low-pass filter
-    heelAngle  = heelAngle  * 0.7 + heel  * 0.3;
-    pitchAngle = pitchAngle * 0.7 + pitch * 0.3;
-
-    updateHeelDisplay(heelAngle, pitchAngle);
-  }, true);
-}
-
-function updateHeelDisplay(heel, pitch) {
-  const absHeel = Math.abs(heel);
-  const side = heel < -2 ? 'PORT' : heel > 2 ? 'STBD' : 'LEVEL';
-  const cls  = absHeel >= 25 ? 'alert' : absHeel >= 15 ? 'warn' : '';
-  const heelTxt = `${Math.round(absHeel)}°`;
-  const pitchTxt = `PITCH ${pitch >= 0 ? '+' : ''}${Math.round(pitch)}°`;
-
-  // Horizon line rotates opposite to heel (if boat heels right, horizon tilts left)
-  const rot = -heel;
-
-  document.getElementById('heel-value').textContent = heelTxt;
-  document.getElementById('heel-value').className = cls;
-  document.getElementById('heel-side').textContent = side;
-  document.getElementById('horizon-line').style.transform = `rotate(${rot}deg)`;
-  document.getElementById('pitch-strip').textContent = pitchTxt;
-
-  // Landscape duplicates
-  const hvl = document.getElementById('heel-value-l');
-  if (hvl) {
-    hvl.textContent = heelTxt;
-    hvl.style.color = cls === 'alert' ? 'var(--red)' : cls === 'warn' ? 'var(--gold)' : 'var(--teal)';
-  }
-  const hsl = document.getElementById('heel-side-l');
-  if (hsl) hsl.textContent = side;
-  const hll = document.getElementById('horizon-line-l');
-  if (hll) hll.style.transform = `rotate(${rot}deg)`;
-  const psl = document.getElementById('pitch-strip-l');
-  if (psl) psl.textContent = pitchTxt;
 }
 
 // ── HAVERSINE ──────────────────────────────────────────────────────
@@ -874,7 +860,6 @@ function exportTrack() {
 
 // ── INIT ───────────────────────────────────────────────────────────
 startGPS();
-startHeel();
 </script>
 </body>
 </html>
